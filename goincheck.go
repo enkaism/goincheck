@@ -79,11 +79,27 @@ type Order struct {
 	ID           int     `json:"id"`
 	Pair         string  `json:"pair"`
 	OrderType    string  `json:"order_type"`
-	Amount       float64 `json:"amount"`
-	Rate         int     `json:"rate"`
-	StopLossRate int     `json:"stop_less_rate"`
+	Amount       string `json:"amount"`
+	Rate         string     `json:"rate"`
+	StopLossRate string     `json:"stop_less_rate"`
 	CreatedAt    string  `json:"created_at"`
 	Error        string  `json:"error"`
+}
+
+type OpenOrders struct{
+	Success bool `json:"success"`
+	Orders []OpenOrder `json:"orders"`
+}
+
+type OpenOrder struct {
+	ID int `json:"id"`
+	OrderType string`json:"order_type"`
+	Rate string `json:"rate"`
+	Pair string `json:"pair"`
+	PendingAmount string `json:"pending_amount"`
+	PendingMarketBuyAmount string `json:"pending_market_buy_amount"`
+	StopLossRate string `json:"stop_loss_rate"`
+	CreatedAt time.Time `json:"created_at"`
 }
 
 type orderParam struct {
@@ -305,6 +321,28 @@ func (cli *Client) GetBalance(ctx context.Context) (*Balance, error) {
 	return &balance, nil
 }
 
+func (cli *Client) GetOpenOrders(ctx context.Context) (*OpenOrders, error) {
+	req, err := cli.newRequest(ctx, http.MethodGet, "/api/exchange/orders/opens", []byte(""))
+	if err != nil {
+		return nil, err
+	}
+
+	res, err := cli.HTTPClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+
+	fmt.Println(res)
+
+	var orders OpenOrders
+	err = decodeBody(res, &orders)
+	if err != nil {
+		return nil, err
+	}
+
+	return &orders, nil
+}
+
 func (cli *Client) newRequest(ctx context.Context, method, endpoint string, body []byte) (*http.Request, error) {
 	u := *cli.BaseURL
 	u.Path = path.Join(cli.BaseURL.Path, endpoint)
@@ -334,7 +372,7 @@ func encodeBody(in interface{}) ([]byte, error) {
 }
 
 func getHeaders(key, secret, uri, body string) map[string]string {
-	currentTime := time.Now().UTC().Unix()
+	currentTime := time.Now().UTC().UnixNano()
 	nonce := strconv.Itoa(int(currentTime))
 	message := nonce + uri + body
 	signature := calcHmac256(message, secret)
