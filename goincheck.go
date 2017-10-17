@@ -75,31 +75,36 @@ type ExchangeRate struct {
 
 // Order struct represents Coincheck Order API Response.
 type Order struct {
-	Success      bool    `json:"success"`
-	ID           int     `json:"id"`
-	Pair         string  `json:"pair"`
-	OrderType    string  `json:"order_type"`
+	Success      bool   `json:"success"`
+	ID           int    `json:"id"`
+	Pair         string `json:"pair"`
+	OrderType    string `json:"order_type"`
 	Amount       string `json:"amount"`
-	Rate         string     `json:"rate"`
-	StopLossRate string     `json:"stop_less_rate"`
-	CreatedAt    string  `json:"created_at"`
-	Error        string  `json:"error"`
+	Rate         string `json:"rate"`
+	StopLossRate string `json:"stop_less_rate"`
+	CreatedAt    string `json:"created_at"`
+	Error        string `json:"error"`
 }
 
-type OpenOrders struct{
-	Success bool `json:"success"`
-	Orders []OpenOrder `json:"orders"`
+type OpenOrders struct {
+	Success bool        `json:"success"`
+	Orders  []OpenOrder `json:"orders"`
 }
 
 type OpenOrder struct {
-	ID int `json:"id"`
-	OrderType string`json:"order_type"`
-	Rate string `json:"rate"`
-	Pair string `json:"pair"`
-	PendingAmount string `json:"pending_amount"`
-	PendingMarketBuyAmount string `json:"pending_market_buy_amount"`
-	StopLossRate string `json:"stop_loss_rate"`
-	CreatedAt time.Time `json:"created_at"`
+	ID                     int       `json:"id"`
+	OrderType              string    `json:"order_type"`
+	Rate                   string    `json:"rate"`
+	Pair                   string    `json:"pair"`
+	PendingAmount          string    `json:"pending_amount"`
+	PendingMarketBuyAmount string    `json:"pending_market_buy_amount"`
+	StopLossRate           string    `json:"stop_loss_rate"`
+	CreatedAt              time.Time `json:"created_at"`
+}
+
+type CancelOrder struct {
+	Success bool `json:"success"`
+	ID      int  `json:"id"`
 }
 
 type orderParam struct {
@@ -332,8 +337,6 @@ func (cli *Client) GetOpenOrders(ctx context.Context) (*OpenOrders, error) {
 		return nil, err
 	}
 
-	fmt.Println(res)
-
 	var orders OpenOrders
 	err = decodeBody(res, &orders)
 	if err != nil {
@@ -341,6 +344,26 @@ func (cli *Client) GetOpenOrders(ctx context.Context) (*OpenOrders, error) {
 	}
 
 	return &orders, nil
+}
+
+func (cli *Client) CancelOrder(ctx context.Context, orderID int) (*CancelOrder, error) {
+	req, err := cli.newRequest(ctx, http.MethodDelete, "/api/exchange/orders/" + strconv.Itoa(orderID), []byte(""))
+	if err != nil {
+		return nil, err
+	}
+
+	res, err := cli.HTTPClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+
+	var order CancelOrder
+	err = decodeBody(res, &order)
+	if err != nil {
+		return nil, err
+	}
+
+	return &order, nil
 }
 
 func (cli *Client) newRequest(ctx context.Context, method, endpoint string, body []byte) (*http.Request, error) {
